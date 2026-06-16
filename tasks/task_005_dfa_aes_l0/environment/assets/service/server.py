@@ -8,11 +8,12 @@ POST /fault   {"pt": "32hex", "byte_pos": 0..15}
 POST /flag    {"key": "32hex"}    → {"flag": "..."} on correct last-round key
 """
 import os, random, re, struct
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 
 app = Flask(__name__)
 BASE      = os.path.dirname(os.path.abspath(__file__))
 FLAG_FILE = os.path.join(BASE, "flag.txt")
+DESIGN_V  = os.path.join(BASE, "aes_core.v")
 
 # Secret AES-128 key
 SECRET_KEY = bytes.fromhex("B0BAFACE0DDBA115CAFEBABE12345678")
@@ -117,6 +118,11 @@ RKS = key_expansion(SECRET_KEY)
 LAST_ROUND_KEY = RKS[10]
 
 # ── API ───────────────────────────────────────────────────────────────────────
+
+@app.get("/design")
+def design():
+    return send_file(DESIGN_V, mimetype="text/plain")
+
 
 @app.get("/health")
 def health():

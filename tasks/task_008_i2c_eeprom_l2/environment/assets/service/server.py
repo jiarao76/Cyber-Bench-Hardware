@@ -14,11 +14,12 @@ The secret at address 0x80 is 0xBEEFC0DE (4 bytes, big-endian, spanning 0x80-0x8
 The flag is claimed by POSTing the correct 4-byte secret to /flag.
 """
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 
 app = Flask(__name__)
 BASE      = os.path.dirname(os.path.abspath(__file__))
 FLAG_FILE = os.path.join(BASE, "flag.txt")
+DESIGN_V  = os.path.join(BASE, "i2c_eeprom.v")
 
 # Public EEPROM data (addresses 0x00-0x0F)
 PUBLIC_MEM = {i: (0xA0 + i) & 0xFF for i in range(0x10)}
@@ -30,6 +31,11 @@ SECRET_PAGE = {
 }
 
 _unlock_step = 0   # 0=locked, 1=got 0xA5, 2=unlocked
+
+
+@app.get("/design")
+def design():
+    return send_file(DESIGN_V, mimetype="text/plain")
 
 
 @app.get("/health")

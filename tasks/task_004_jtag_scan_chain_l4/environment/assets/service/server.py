@@ -10,11 +10,12 @@ IR=0x3    : SECRET (32-bit secret register — flag source)
 State machine follows IEEE 1149.1 TAP transitions driven by TMS.
 """
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 
 app = Flask(__name__)
 BASE      = os.path.dirname(os.path.abspath(__file__))
 FLAG_FILE = os.path.join(BASE, "flag.txt")
+DESIGN_V  = os.path.join(BASE, "tap_controller.v")
 
 SECRET_REG = 0xCAFEF00D
 IDCODE_REG = 0x0BA5EFAB
@@ -97,6 +98,11 @@ class TAPController:
 
 
 _tap = TAPController()
+
+
+@app.get("/design")
+def design():
+    return send_file(DESIGN_V, mimetype="text/plain")
 
 
 @app.get("/health")
