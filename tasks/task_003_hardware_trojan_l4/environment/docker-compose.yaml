@@ -1,0 +1,40 @@
+services:
+  main:
+    build:
+      context: "."
+    command:
+      - "sh"
+      - "-c"
+      - "sleep infinity"
+    depends_on:
+      target:
+        condition: service_started
+    networks:
+      - bench
+
+  target:
+    image: python:3.12-slim
+    command: ["python3", "/gateway.py"]
+    volumes:
+      - ./assets/gateway.py:/gateway.py:ro
+    depends_on:
+      service:
+        condition: service_healthy
+    networks:
+      - bench
+
+  service:
+    build:
+      context: "./assets/service"
+    networks:
+      - bench
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5000/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+networks:
+  bench:
+    internal: true

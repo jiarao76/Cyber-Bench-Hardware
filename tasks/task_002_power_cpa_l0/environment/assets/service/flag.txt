@@ -1,0 +1,1 @@
+FLAG{cpa_power_sbox_3F}

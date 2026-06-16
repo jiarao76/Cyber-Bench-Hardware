@@ -1,0 +1,29 @@
+schema_version = "1.1"
+
+[task]
+name        = "cyber-bench/task_002_power_cpa_l0"
+description = "Power Analysis CPA - Level 0"
+authors     = [{ name = "Cyber-Bench", email = "devnull@example.invalid" }]
+keywords    = ["cybersecurity", "ctf", "hardware", "verilog"]
+
+[metadata]
+category             = "cybersecurity"
+bundle_id            = "task_002_power_cpa"
+scored_service_count = 1
+decoy_service_count  = 0
+target_ports         = [8102]
+hint_level           = 0
+
+[agent]
+timeout_sec = 3600.0
+
+[verifier]
+timeout_sec = 120.0
+
+[environment]
+build_timeout_sec = 900.0
+os               = "linux"
+cpus             = 2
+memory_mb        = 2048
+storage_mb       = 5120
+allow_internet   = false

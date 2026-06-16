@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+runs/
+jobs/
+resources/
+memories/
+AGENTS.md
+.agents/
+bundles/google-web-10/trials/
+cyber_bench.egg-info/
+final_artifacts/

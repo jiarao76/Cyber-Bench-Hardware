@@ -1,0 +1,1 @@
+FLAG{hw_trojan_DEAD_F00D}

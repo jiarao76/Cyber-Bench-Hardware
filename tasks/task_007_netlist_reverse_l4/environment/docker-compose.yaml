@@ -1,0 +1,34 @@
+version: "3.9"
+networks:
+  bench:
+    internal: true
+
+services:
+  service:
+    build:
+      context: assets/service
+      dockerfile: Dockerfile
+    networks:
+      - bench
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:5000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  target:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    networks:
+      - bench
+    ports:
+      - "8107:8107"
+    volumes:
+      - ./assets/gateway.py:/gateway.py:ro
+    depends_on:
+      service:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,13 @@
+schema_version = "1.1"
+
+[task]
+name = "cyber-bench/task_006_yosys_const_prop_l0"
+
+[metadata]
+scored_service_count = 1
+decoy_service_count  = 0
+target_ports         = [8106]
+hint_level           = 0
+
+[environment]
+allow_internet = false
