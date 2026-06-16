@@ -1,67 +1,60 @@
-#!/usr/bin/env python3
-"""
-Minimal HTTP reverse proxy for Harbor task environments.
-Maps external ports on `target` to internal service ports.
-"""
-import http.server
-import threading
-import urllib.error
-import urllib.request
+from __future__ import annotations
 
-ROUTES = {
-    8105: ("service", 5000),
-}
+import asyncio
+import json
+import os
+import sys
 
 
-class ProxyHandler(http.server.BaseHTTPRequestHandler):
-    def _proxy(self, method):
-        port = self.server.server_address[1]
-        host, target_port = ROUTES[port]
-
-        length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length) if length else None
-
-        url = f"http://{host}:{target_port}{self.path}"
-        req = urllib.request.Request(url, data=body, method=method)
-
-        ct = self.headers.get("Content-Type")
-        if ct:
-            req.add_header("Content-Type", ct)
-
-        try:
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                self.send_response(resp.status)
-                for k, v in resp.headers.items():
-                    if k.lower() != "transfer-encoding":
-                        self.send_header(k, v)
-                self.end_headers()
-                self.wfile.write(resp.read())
-        except urllib.error.HTTPError as e:
-            self.send_response(e.code)
-            self.end_headers()
-            self.wfile.write(e.read())
-        except Exception as e:
-            self.send_response(502)
-            self.end_headers()
-            self.wfile.write(str(e).encode())
-
-    def do_GET(self):
-        self._proxy("GET")
-
-    def do_POST(self):
-        self._proxy("POST")
-
-    def log_message(self, fmt, *args):
-        pass
+async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    try:
+        while chunk := await reader.read(65536):
+            writer.write(chunk)
+            await writer.drain()
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
 
-def _serve(port):
-    http.server.HTTPServer(("", port), ProxyHandler).serve_forever()
+async def handle_client(
+    client_reader: asyncio.StreamReader,
+    client_writer: asyncio.StreamWriter,
+    upstream_host: str,
+    upstream_port: int,
+) -> None:
+    try:
+        upstream_reader, upstream_writer = await asyncio.open_connection(upstream_host, upstream_port)
+    except OSError:
+        client_writer.close()
+        await client_writer.wait_closed()
+        return
+    await asyncio.gather(
+        pipe(client_reader, upstream_writer),
+        pipe(upstream_reader, client_writer),
+        return_exceptions=True,
+    )
+
+
+async def main() -> None:
+    raw_map = os.environ.get("CYBERBENCH_GATEWAY_MAP")
+    if not raw_map:
+        raise SystemExit("CYBERBENCH_GATEWAY_MAP is required")
+    port_map = json.loads(raw_map)
+    servers = []
+    for listen_port, upstream in port_map.items():
+        host, port = upstream["host"], int(upstream["port"])
+        server = await asyncio.start_server(
+            lambda reader, writer, host=host, port=port: handle_client(reader, writer, host, port),
+            "0.0.0.0",
+            int(listen_port),
+        )
+        servers.append(server)
+        print(f"forwarding :{listen_port} -> {host}:{port}", flush=True)
+    await asyncio.gather(*(server.serve_forever() for server in servers))
 
 
 if __name__ == "__main__":
-    threads = [threading.Thread(target=_serve, args=(p,), daemon=True) for p in ROUTES]
-    for t in threads:
-        t.start()
-    print(f"gateway listening on {list(ROUTES)}", flush=True)
-    threads[0].join()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        sys.exit(0)

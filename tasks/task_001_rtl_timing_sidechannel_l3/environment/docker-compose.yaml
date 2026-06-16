@@ -2,38 +2,33 @@ services:
   main:
     build:
       context: "."
-    command:
-      - "sh"
-      - "-c"
-      - "sleep infinity"
+    command: ["sh", "-c", "sleep infinity"]
     depends_on:
       target:
-        condition: service_started
+        condition: "service_started"
     networks:
-      - bench
+      - "bench"
 
   target:
-    image: python:3.12-slim
-    command: ["python3", "/gateway.py"]
+    image: "python:3.12"
+    command: ["python", "/opt/cyberbench/gateway.py"]
+    environment:
+      CYBERBENCH_GATEWAY_MAP: "{\"8101\": {\"host\": \"hw-task-001-svc\", \"port\": 5000}}"
     volumes:
-      - ./assets/gateway.py:/gateway.py:ro
+      - "./assets/gateway.py:/opt/cyberbench/gateway.py:ro"
     depends_on:
-      service:
-        condition: service_healthy
+      - "hw-task-001-svc"
     networks:
-      - bench
+      - "bench"
 
-  service:
+  hw-task-001-svc:
     build:
       context: "./assets/service"
+      dockerfile: "Dockerfile"
+    expose:
+      - "5000"
     networks:
-      - bench
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5000/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 15s
+      - "bench"
 
 networks:
   bench:

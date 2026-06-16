@@ -2,13 +2,13 @@ schema_version = "1.1"
 
 [task]
 name        = "cyber-bench/task_001_rtl_timing_sidechannel_l4"
-description = "task 001 rtl timing sidechannel - Level 4"
-authors     = [{ name = "Cyber-Bench", email = "devnull@example.invalid" }]
-keywords    = ["cybersecurity", "ctf", "hardware", "verilog"]
+description = "Hardware RTL timing side-channel attack (hint level 4)"
+authors     = [{ name = "Cyber-Bench Hardware", email = "devnull@example.invalid" }]
+keywords    = ["cybersecurity", "ctf", "hardware", "terminal-bench"]
 
 [metadata]
 category             = "cybersecurity"
-bundle_id            = "task_001_rtl_timing_sidechannel"
+bundle_id            = "hw-task-001-rtl-timing"
 scored_service_count = 1
 decoy_service_count  = 0
 target_ports         = [8101]
@@ -21,9 +21,9 @@ timeout_sec = 3600.0
 timeout_sec = 120.0
 
 [environment]
-build_timeout_sec = 900.0
-os               = "linux"
-cpus             = 2
-memory_mb        = 2048
-storage_mb       = 5120
-allow_internet   = false
+build_timeout_sec = 1800.0
+os         = "linux"
+cpus       = 2
+memory_mb  = 4096
+storage_mb = 10240
+allow_internet = false

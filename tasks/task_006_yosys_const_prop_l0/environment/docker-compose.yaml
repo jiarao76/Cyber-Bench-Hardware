@@ -1,34 +1,35 @@
-version: "3.9"
+services:
+  main:
+    build:
+      context: "."
+    command: ["sh", "-c", "sleep infinity"]
+    depends_on:
+      target:
+        condition: "service_started"
+    networks:
+      - "bench"
+
+  target:
+    image: "python:3.12"
+    command: ["python", "/opt/cyberbench/gateway.py"]
+    environment:
+      CYBERBENCH_GATEWAY_MAP: "{\"8106\": {\"host\": \"hw-task-006-svc\", \"port\": 5000}}"
+    volumes:
+      - "./assets/gateway.py:/opt/cyberbench/gateway.py:ro"
+    depends_on:
+      - "hw-task-006-svc"
+    networks:
+      - "bench"
+
+  hw-task-006-svc:
+    build:
+      context: "./assets/service"
+      dockerfile: "Dockerfile"
+    expose:
+      - "5000"
+    networks:
+      - "bench"
+
 networks:
   bench:
     internal: true
-
-services:
-  service:
-    build:
-      context: assets/service
-      dockerfile: Dockerfile
-    networks:
-      - bench
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:5000/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
-
-  target:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    networks:
-      - bench
-    ports:
-      - "8106:8106"
-    volumes:
-      - ./assets/gateway.py:/gateway.py:ro
-    depends_on:
-      service:
-        condition: service_healthy
-    restart: unless-stopped

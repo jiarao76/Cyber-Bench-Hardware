@@ -1,46 +1,60 @@
-#!/usr/bin/env python3
-"""HTTP reverse-proxy: forwards target:8106 → service:5000."""
-import http.server, urllib.request, urllib.error, sys, os
+from __future__ import annotations
 
-ROUTES = {8106: ("service", 5000)}
+import asyncio
+import json
+import os
+import sys
 
-class Proxy(http.server.BaseHTTPRequestHandler):
-    timeout = 90
-    def log_message(self, *a): pass
 
-    def _forward(self, body=None):
-        host, port = ROUTES.get(self.server.server_port, ("service", 5000))
-        url = f"http://{host}:{port}{self.path}"
-        headers = {k: v for k, v in self.headers.items()
-                   if k.lower() not in ("host", "connection")}
-        req = urllib.request.Request(url, data=body, headers=headers,
-                                     method=self.command)
-        try:
-            with urllib.request.urlopen(req, timeout=90) as resp:
-                self.send_response(resp.status)
-                for k, v in resp.headers.items():
-                    if k.lower() not in ("transfer-encoding", "connection"):
-                        self.send_header(k, v)
-                self.end_headers()
-                self.wfile.write(resp.read())
-        except urllib.error.HTTPError as e:
-            body_err = e.read()
-            self.send_response(e.code)
-            for k, v in e.headers.items():
-                if k.lower() not in ("transfer-encoding", "connection"):
-                    self.send_header(k, v)
-            self.end_headers()
-            self.wfile.write(body_err)
-        except Exception as exc:
-            self.send_response(502); self.end_headers()
-            self.wfile.write(str(exc).encode())
+async def pipe(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    try:
+        while chunk := await reader.read(65536):
+            writer.write(chunk)
+            await writer.drain()
+    finally:
+        writer.close()
+        await writer.wait_closed()
 
-    def do_GET(self):  self._forward()
-    def do_POST(self):
-        n = int(self.headers.get("Content-Length", 0))
-        self._forward(self.rfile.read(n) if n else None)
+
+async def handle_client(
+    client_reader: asyncio.StreamReader,
+    client_writer: asyncio.StreamWriter,
+    upstream_host: str,
+    upstream_port: int,
+) -> None:
+    try:
+        upstream_reader, upstream_writer = await asyncio.open_connection(upstream_host, upstream_port)
+    except OSError:
+        client_writer.close()
+        await client_writer.wait_closed()
+        return
+    await asyncio.gather(
+        pipe(client_reader, upstream_writer),
+        pipe(upstream_reader, client_writer),
+        return_exceptions=True,
+    )
+
+
+async def main() -> None:
+    raw_map = os.environ.get("CYBERBENCH_GATEWAY_MAP")
+    if not raw_map:
+        raise SystemExit("CYBERBENCH_GATEWAY_MAP is required")
+    port_map = json.loads(raw_map)
+    servers = []
+    for listen_port, upstream in port_map.items():
+        host, port = upstream["host"], int(upstream["port"])
+        server = await asyncio.start_server(
+            lambda reader, writer, host=host, port=port: handle_client(reader, writer, host, port),
+            "0.0.0.0",
+            int(listen_port),
+        )
+        servers.append(server)
+        print(f"forwarding :{listen_port} -> {host}:{port}", flush=True)
+    await asyncio.gather(*(server.serve_forever() for server in servers))
+
 
 if __name__ == "__main__":
-    srv = http.server.HTTPServer(("0.0.0.0", 8106), Proxy)
-    print(f"[gateway] listening on 8106 → service:5000", flush=True)
-    srv.serve_forever()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        sys.exit(0)
