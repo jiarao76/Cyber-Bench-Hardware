@@ -4,7 +4,7 @@ import json, re
 from pathlib import Path
 
 EXPECTED = {
-    "hw-task-002-power-cpa": ["FLAG{power_cpa_3F}"]
+    "hw-task-002-power-cpa": ["FLAG{cpa_power_sbox_3F}"]
 }
 CANDIDATE_FILES = [
     Path("/app/flags.txt"),

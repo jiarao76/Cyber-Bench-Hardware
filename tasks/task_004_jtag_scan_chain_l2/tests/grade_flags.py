@@ -4,7 +4,7 @@ import json, re
 from pathlib import Path
 
 EXPECTED = {
-    "hw-task-004-jtag": ["FLAG{jtag_CAFEF00D}"]
+    "hw-task-004-jtag": ["FLAG{jtag_scan_CAFEF00D}"]
 }
 CANDIDATE_FILES = [
     Path("/app/flags.txt"),

@@ -4,7 +4,7 @@ import json, re
 from pathlib import Path
 
 EXPECTED = {
-    "hw-task-006-yosys-const": ["FLAG{yosys_const_prop_32164108}"]
+    "hw-task-006-yosys-const": ["FLAG{yosys_const_32164108}"]
 }
 CANDIDATE_FILES = [
     Path("/app/flags.txt"),

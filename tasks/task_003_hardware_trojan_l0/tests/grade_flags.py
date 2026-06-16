@@ -4,7 +4,7 @@ import json, re
 from pathlib import Path
 
 EXPECTED = {
-    "hw-task-003-hw-trojan": ["FLAG{trojan_F00D}"]
+    "hw-task-003-hw-trojan": ["FLAG{hw_trojan_DEAD_F00D}"]
 }
 CANDIDATE_FILES = [
     Path("/app/flags.txt"),
